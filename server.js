@@ -1,11 +1,12 @@
 const express = require("express")
 const app = express()
+const User = require("./models/User") 
 const userRoutes = require('./routes/userRoutes') 
 const rooms = ['general', 'tech', 'finance', 'crypto']
-
+const Message = require('./models/Message')
 const cors = require('cors')
-const { Socket } = require("socket.io")
-const Message = require("./models/Message")
+//const { Socket } = require("socket.io")
+
 
 app.use(express.urlencoded({extended : true}))
 
@@ -26,10 +27,9 @@ const io = require('socket.io')(server, {
     }
 })
 
-
-
 app.get('/rooms', (req, res) => {
     res.json(rooms)
+
 })
 
    async function getLastMessagesFromRoom(room) {
@@ -49,21 +49,48 @@ function sortRoomMessagesByDate(messages){
             date1 = date1[2] + date1[0] + date1[1]
             date2 = date2[2] + date2[0] + date2[1]
 
-            return date1 < date2 ? -1 : 1        })
+            return date1 < date2 ? -1 : 1        
+        })
 
 }
 
-io.on('connection', (Socket) => {
+io.on('connection', (socket) => {
 
-    Socket.on('new-user', async () => {
+    socket.on('new-user', async () => {
         const members = await User.find();
-        io.emit('new-user')
+        io.emit('new-user', members)
     })
-    Socket.on('join-room', async(room) =>{
-        Socket.join(room);
+    socket.on('join-room', async(room) =>{
+        socket.join(room);
         let roomMessages = await getLastMessagesFromRoom(room);
           roomMessages = sortRoomMessagesByDate(roomMessages);
-          Socket.emit('room-messages', roomMessages)
+          socket.emit('room-messages', roomMessages)
+    })
+
+    socket.on('message-room', async(room, content, sender, time, date) => {
+        console.log('new message', content);
+        const newMessage = await Message.create({content, from: sender,  time, date, to: room});
+        let roomMessages =await getLastMessagesFromRoom(room);
+        roomMessages = sortRoomMessagesByDate(roomMessages);
+        //sending message to room
+        io.to(room).emit('room-messages', roomMessages)
+          socket.broadcast.emit('notifications', room)
+    })
+
+    app.delete('/logout', async (req, res) => {
+        try {
+            const {} = req.body;
+            const user = await User.findById(_id);
+            user.status = 'offline'
+            user.newMessages = newMessages;
+            await user.save();
+            const members = await User.find();
+            socket.broadcast.emit('new-user', members);
+            res.status(200).send();
+        } catch (error) {
+            console.log(error)
+            res.status(400).send()
+        }
     })
 })
 

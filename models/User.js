@@ -23,8 +23,10 @@ const UserSchema = new mongoose.Schema({
     picture: {
         type: String,
     },
-    gender: {
-        type : String,  
+    gender: { 
+        type: String, 
+        enum: ['male', 'female', 'non-binary'], 
+        required: true 
     },
     newMessages : {
         type: Object,
