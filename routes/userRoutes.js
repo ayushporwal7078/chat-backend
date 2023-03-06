@@ -4,9 +4,9 @@ const User = require("../models/User")
 //creating User
 router.post('/', async(req, res) =>{
     try {
-        const {name, email, password, picture, gender} = req.body;
+        const {name, email, password, confirmPassword, picture, gender} = req.body;
         console.log(req.body);
-        const user = await User.create({name, email, password, picture, gender});
+        const user = await User.create({name, email, password, confirmPassword, picture, gender});
         res.status(201).json(user);
     } catch (error) {
         let msg;
@@ -29,7 +29,7 @@ router.post('/login', async(req, res)=>{
         await user.save();
         res.status(200).json(user)  
     } catch (e) {
-       let msg = "Email is Wrong"        
+       let msg = "Email/password is Wrong"        
         console.log(e)
         res.status(400).json(msg)
     }
